@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Audio Recorder</title>
+</head>
+<body>
+  <button id="startButton">Start Recording</button>
+  <button id="stopButton" disabled>Stop Recording</button>
+
+  <script>
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    let mediaRecorder;
+    let chunks = [];
+
+    startButton.addEventListener('click', startRecording);
+    stopButton.addEventListener('click', stopRecording);
+
+    function startRecording() {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.start(10000);
+
+          mediaRecorder.addEventListener('dataavailable', event => {
+            chunks.push(event.data);
+            const audioBlob = new Blob(chunks, { type: 'audio/wav' });
+            sendAudioToServer(audioBlob);
+          });
+
+          mediaRecorder.addEventListener('stop', () => {
+            // console.log("Chunks:", chunks); // DEBUG
+            // console.log("audioBlob", audioBlob); // DEBUG
+            const audioBlob = new Blob(chunks, { type: 'audio/wav' });
+            chunks = [];
+            sendAudioToServer(audioBlob);
+          });
+
+          startButton.disabled = true;
+          stopButton.disabled = false;
+        })
+        .catch(error => {
+          console.error('Error accessing microphone:', error);
+        });
+    }
+
+    function stopRecording() {
+      mediaRecorder.stop();
+      startButton.disabled = false;
+      stopButton.disabled = true;
+    }
+
+    function sendAudioToServer(audioBlob) {
+      const formData = new FormData();
+      formData.append('files', audioBlob, 'recording.wav');
+
+      console.log("Sending audio.");
+      // console.log("formData:", formData);
+      fetch('http://localhost:8000/transcribe_files', {
+        method: 'POST',
+        body: formData
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log(data);
+        })
+        .catch(error => {
+          console.error('Error sending audio:', error);
+        });
+    }
+  </script>
+</body>
+</html>
+
+<!-- <!DOCTYPE html>
+<html>
+<head>
+  <title>Audio Recorder</title>
+</head>
+<body>
+  <button id="startButton">Start Recording</button>
+  <button id="stopButton" disabled>Stop Recording</button>
+
+  <script>
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    startButton.addEventListener('click', startRecording);
+    stopButton.addEventListener('click', stopRecording);
+    let mediaRecorder;
+    let chunks = [];
+    let startTime;
+
+    function startRecording() {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start(5000);
+
+        mediaRecorder.addEventListener('dataavailable', event => {
+          chunks.push(event.data)
+          sendAudioToServer(chunks);
+        });
+
+        mediaRecorder.addEventListener('stop', () => {
+          console.log("Recording stopped");
+          startButton.disabled = false;
+          stopButton.disabled = true;
+        });
+
+        startButton.disabled = true;
+        stopButton.disabled = false;
+      })
+      .catch(error => {
+        console.error('Error accessing microphone:', error);
+      });
+    }
+
+    function stopRecording() {
+      mediaRecorder.stop();
+      startButton.disabled = false;
+      stopButton.disabled = true;
+    }
+
+    function sendAudioToServer(audioChunk) { // Change this line
+      const formData = new FormData();
+      formData.append('files', new Blob([audioChunk], { type: 'audio/wav' }), 'recording.wav'); // Change this line
+      console.log(formData);
+
+      // fetch('http://localhost:8000/upload', {
+      fetch('http://localhost:8000/transcribe_files', {
+        method: 'POST',
+        body: formData
+      })
+        .then(response => {
+          console.log('Audio chunk sent successfully:', response);
+        })
+        .catch(error => {
+          console.error('Error sending audio chunk:', error);
+        });
+    }
+  </script>
+</body>
+</html> -->
