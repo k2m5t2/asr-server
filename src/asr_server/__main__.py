@@ -12,10 +12,11 @@ import subprocess
 origins = ["*"]
 
 device = "cpu"
-batch_size = 1
+batch_size = 4
 compute_type = "int8"
 
-model = whisperx.load_model("large-v2", device, compute_type=compute_type)
+# model = whisperx.load_model("large-v2", device, compute_type=compute_type)
+model = whisperx.load_model("distil-small.en", device, compute_type=compute_type)
 
 app = FastAPI(title="Upload Files by FastAPI")
 
@@ -40,8 +41,9 @@ async def transcribe_audio_files(files: List[UploadFile] = File(...)):
             result = model.transcribe(audio, batch_size=batch_size)
             if "segments" in result:
                 # transcription = result["segments"][0]["text"]
-                transcription = [result["segments"][i]["text"] for i in range(len(result["segments"]))]
                 # transcription = result
+                transcription = [result["segments"][i]["text"] for i in range(len(result["segments"]))]
+                # transcription = "".join(transcription)
             else:
                 transcription = None
 
